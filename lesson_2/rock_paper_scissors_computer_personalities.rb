@@ -91,6 +91,10 @@ class Player
   def won?
     score >= NB_ROUNDS
   end
+
+  def log_move_to_history
+    history.increase_move_totals(move)
+  end
 end
 
 class Human < Player
@@ -114,7 +118,6 @@ class Human < Player
       puts "Sorry, invalid choice..."
     end
     self.move = Move.new(choice)
-    history.increase_move_totals(move)
   end
 end
 
@@ -142,7 +145,6 @@ class Chappie < Computer
   def choose
     sample_list = fill_samples_list
     self.move = Move.new(sample_list.sample)
-    history.increase_move_totals(move)
   end
 
   private
@@ -191,6 +193,8 @@ class RPSGame
     @human = Human.new
     @computer = [R2D2, Hal, Chappie, Sonny, Number5].sample.new
   end
+
+  private
 
   def display_welcome_message
     puts "Welcome to Rock, Paper, Scissors, Lizard, Spock!"
@@ -278,10 +282,16 @@ class RPSGame
     puts
   end
 
+  def choose_moves
+    [human, computer].each do |player|
+      player.choose
+      player.log_move_to_history
+    end
+  end
+
   def play_single_round
     # display_moves_history
-    human.choose
-    computer.choose
+    choose_moves
     display_moves
     winner = determine_winner
     update_moves(winner)
@@ -299,6 +309,8 @@ class RPSGame
 
     display_full_round_result
   end
+
+  public
 
   def play
     display_welcome_message
