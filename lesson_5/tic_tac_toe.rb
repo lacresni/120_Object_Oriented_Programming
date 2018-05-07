@@ -26,22 +26,12 @@ class Board
     !!winning_marker
   end
 
-  def count_human_marker(squares)
-    squares.map(&:marker).count(TTTGame::HUMAN_MARKER)
-  end
-
-  def count_computer_marker(squares)
-    squares.map(&:marker).count(TTTGame::COMPUTER_MARKER)
-  end
-
   # returns winning marker or nil
   def winning_marker
     WINNING_LINES.each do |line|
       squares = @squares.values_at(*line)
-      if count_human_marker(squares) == 3
-        return TTTGame::HUMAN_MARKER
-      elsif count_computer_marker(squares) == 3
-        return TTTGame::COMPUTER_MARKER
+      if three_identical_markers?(squares)
+        return squares.first.marker
       end
     end
     nil
@@ -64,6 +54,13 @@ class Board
     puts "  #{@squares[7]}  |  #{@squares[8]}  |  #{@squares[9]}"
     puts "     |     |"
   end
+
+  private
+
+  def three_identical_markers?(squares)
+    markers = squares.select(&:marked?).map(&:marker)
+    markers.size == 3 && markers.uniq.size == 1
+  end
 end
 
 class Square
@@ -82,6 +79,10 @@ class Square
   def unmarked?
     marker == INITIAL_MARKER
   end
+
+  def marked?
+    !unmarked?
+  end
 end
 
 class Player
@@ -94,6 +95,7 @@ end
 class TTTGame
   HUMAN_MARKER = "X"
   COMPUTER_MARKER = "O"
+  FIRST_TO_MOVE = HUMAN_MARKER
 
   attr_reader :board, :human, :computer
 
@@ -101,7 +103,10 @@ class TTTGame
     @board = Board.new
     @human = Player.new(HUMAN_MARKER)
     @computer = Player.new(COMPUTER_MARKER)
+    @current_marker = FIRST_TO_MOVE
   end
+
+  private
 
   def display_welcome_message
     puts "Welcome to Tic Tac Toe!"
@@ -144,6 +149,20 @@ class TTTGame
     board[board.unmarked_keys.sample] = computer.marker
   end
 
+  def human_turn?
+    @current_marker == HUMAN_MARKER
+  end
+
+  def current_player_moves
+    if human_turn?
+      human_moves
+      @current_marker = COMPUTER_MARKER
+    else
+      computer_moves
+      @current_marker = HUMAN_MARKER
+    end
+  end
+
   def display_result
     clear_screen_and_display_board
 
@@ -172,12 +191,15 @@ class TTTGame
   def reset
     board.reset
     clear
+    @current_marker = FIRST_TO_MOVE
   end
 
   def display_play_again_message
     puts "Let's play again!"
     puts ""
   end
+
+  public
 
   def play
     clear
@@ -187,14 +209,11 @@ class TTTGame
       display_board
 
       loop do
-        human_moves
+        current_player_moves
         break if board.someone_won? || board.full?
-
-        computer_moves
-        break if board.someone_won? || board.full?
-
-        clear_screen_and_display_board
+        clear_screen_and_display_board if human_turn?
       end
+
       display_result
       break unless play_again?
       reset
