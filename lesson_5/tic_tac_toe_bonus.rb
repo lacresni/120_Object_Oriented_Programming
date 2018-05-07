@@ -10,6 +10,10 @@ class Board
     reset
   end
 
+  def reset
+    (1..9).each { |key| @squares[key] = Square.new }
+  end
+
   def []=(key, marker)
     @squares[key].marker = marker
   end
@@ -37,8 +41,16 @@ class Board
     nil
   end
 
-  def reset
-    (1..9).each { |key| @squares[key] = Square.new }
+  def find_at_risk_square(marker)
+    WINNING_LINES.each do |line|
+      squares = @squares.values_at(*line)
+      markers, no_markers = squares.partition(&:marked?)
+      markers.map!(&:marker)
+      if markers.count(marker) == 2 && no_markers.size == 1
+        return line.select { |key| @squares[key].unmarked? }.first
+      end
+    end
+    nil
   end
 
   # rubocop:disable Metrics/AbcSize
@@ -170,7 +182,9 @@ class TTTGame
   end
 
   def computer_moves
-    board[board.unmarked_keys.sample] = computer.marker
+    square = board.find_at_risk_square(human.marker)
+    square = board.unmarked_keys.sample if square.nil?
+    board[square] = computer.marker
   end
 
   def human_turn?
