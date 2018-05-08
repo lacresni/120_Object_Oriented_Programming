@@ -118,14 +118,15 @@ end
 class TTTGame
   HUMAN_MARKER = "X"
   COMPUTER_MARKER = "O"
-  FIRST_TO_MOVE = COMPUTER_MARKER
+  FIRST_TO_MOVE = HUMAN_MARKER
   WINNING_ROUNDS = 5
 
   attr_reader :board, :human, :computer
 
   def initialize
+    clear
     @board = Board.new
-    @human = Player.new(HUMAN_MARKER)
+    @human = Player.new(choose_human_marker)
     @computer = Player.new(COMPUTER_MARKER)
     @current_marker = FIRST_TO_MOVE
   end
@@ -167,6 +168,24 @@ class TTTGame
     else
       arr.join(separator).insert(-2, "#{word} ")
     end
+  end
+
+  def marker_valid?(marker)
+    marker.size == 1 &&
+      marker != COMPUTER_MARKER &&
+      marker != Square::INITIAL_MARKER
+  end
+
+  def choose_human_marker
+    marker = nil
+    loop do
+      puts "Which marker do you want to play with? (1 char only)"
+      puts "Note: #{COMPUTER_MARKER} is not allowed."
+      marker = gets.chomp.upcase
+      break if marker_valid?(marker)
+      puts "Sorry, invalid choice."
+    end
+    marker
   end
 
   def human_moves
