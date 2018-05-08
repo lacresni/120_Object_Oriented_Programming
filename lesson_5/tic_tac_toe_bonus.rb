@@ -1,5 +1,29 @@
 require 'pry'
 
+module Joinable
+  def joinor(arr, separator = ', ', word = 'or')
+    case arr.size
+    when 0 then ''
+    when 1 then arr.first.to_s
+    when 2 then arr.join(" #{word} ")
+    else
+      arr.join(separator).insert(-2, "#{word} ")
+    end
+  end
+end
+
+module Scoreable
+  attr_reader :score
+
+  def reset_score
+    @score = 0
+  end
+
+  def increase_score
+    @score += 1
+  end
+end
+
 class Board
   WINNING_LINES = [[1, 2, 3], [4, 5, 6], [7, 8, 9]] + # rows
                   [[1, 4, 7], [2, 5, 8], [3, 6, 9]] + # cols
@@ -100,25 +124,21 @@ class Square
 end
 
 class Player
-  attr_reader :marker, :score
+  include Scoreable
+
+  attr_reader :marker
   def initialize(marker)
     @marker = marker
     reset_score
   end
-
-  def reset_score
-    @score = 0
-  end
-
-  def increase_score
-    @score += 1
-  end
 end
 
 class TTTGame
-  HUMAN_MARKER = "X"
-  COMPUTER_MARKER = "O"
-  FIRST_TO_MOVE = HUMAN_MARKER
+  include Joinable
+
+  COMPUTER_MARKER_1 = "O"
+  COMPUTER_MARKER_2 = "X"
+  FIRST_TO_MOVE = "choose"
   WINNING_ROUNDS = 5
 
   attr_reader :board, :human, :computer
@@ -126,12 +146,26 @@ class TTTGame
   def initialize
     clear
     @board = Board.new
-    @human = Player.new(choose_human_marker)
-    @computer = Player.new(COMPUTER_MARKER)
-    @current_marker = FIRST_TO_MOVE
   end
 
   private
+
+  def initialize_players
+    @human = Player.new(choose_human_marker)
+    computer_marker = COMPUTER_MARKER_1
+    computer_marker = COMPUTER_MARKER_2 if human.marker == COMPUTER_MARKER_1
+    @computer = Player.new(computer_marker)
+  end
+
+  def initialize_first_player
+    case FIRST_TO_MOVE
+    when "player" then @current_marker = human.marker
+    when "computer" then @current_marker = computer.marker
+    else
+      choose_first_player
+    end
+    @first_player = @current_marker
+  end
 
   def display_welcome_message
     puts "Welcome to Tic Tac Toe!"
@@ -160,19 +194,8 @@ class TTTGame
     puts ""
   end
 
-  def joinor(arr, separator = ', ', word = 'or')
-    case arr.size
-    when 0 then ''
-    when 1 then arr.first.to_s
-    when 2 then arr.join(" #{word} ")
-    else
-      arr.join(separator).insert(-2, "#{word} ")
-    end
-  end
-
   def marker_valid?(marker)
     marker.size == 1 &&
-      marker != COMPUTER_MARKER &&
       marker != Square::INITIAL_MARKER
   end
 
@@ -180,12 +203,22 @@ class TTTGame
     marker = nil
     loop do
       puts "Which marker do you want to play with? (1 char only)"
-      puts "Note: #{COMPUTER_MARKER} is not allowed."
       marker = gets.chomp.upcase
       break if marker_valid?(marker)
       puts "Sorry, invalid choice."
     end
     marker
+  end
+
+  def choose_first_player
+    choice = nil
+    loop do
+      puts "Do you want to play first? (y/n)"
+      choice = gets.chomp.downcase
+      break if %w[y n].include?(choice)
+      puts "Invalid choice... Select y or n"
+    end
+    @current_marker = choice == 'y' ? human.marker : computer.marker
   end
 
   def human_moves
@@ -214,16 +247,16 @@ class TTTGame
   end
 
   def human_turn?
-    @current_marker == HUMAN_MARKER
+    @current_marker == human.marker
   end
 
   def current_player_moves
     if human_turn?
       human_moves
-      @current_marker = COMPUTER_MARKER
+      @current_marker = computer.marker
     else
       computer_moves
-      @current_marker = HUMAN_MARKER
+      @current_marker = human.marker
     end
   end
 
@@ -283,7 +316,7 @@ class TTTGame
   def reset(score: false)
     board.reset
     clear
-    @current_marker = FIRST_TO_MOVE
+    @current_marker = @first_player
     [human, computer].each(&:reset_score) if score
   end
 
@@ -323,6 +356,9 @@ class TTTGame
   def play
     clear
     display_welcome_message
+    initialize_players
+    initialize_first_player
+    clear
 
     loop do
       play_rounds
