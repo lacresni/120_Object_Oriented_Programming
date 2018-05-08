@@ -182,7 +182,11 @@ class TTTGame
   end
 
   def computer_moves
-    square = board.find_at_risk_square(human.marker)
+    # offensive move
+    square = board.find_at_risk_square(computer.marker)
+    # defensive move
+    square = board.find_at_risk_square(human.marker) if square.nil?
+    # random move
     square = board.unmarked_keys.sample if square.nil?
     board[square] = computer.marker
   end
