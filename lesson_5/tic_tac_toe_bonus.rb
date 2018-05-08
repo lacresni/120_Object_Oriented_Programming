@@ -118,7 +118,7 @@ end
 class TTTGame
   HUMAN_MARKER = "X"
   COMPUTER_MARKER = "O"
-  FIRST_TO_MOVE = HUMAN_MARKER
+  FIRST_TO_MOVE = COMPUTER_MARKER
   WINNING_ROUNDS = 5
 
   attr_reader :board, :human, :computer
@@ -163,7 +163,7 @@ class TTTGame
     case arr.size
     when 0 then ''
     when 1 then arr.first.to_s
-    when 2 then arr.join(word)
+    when 2 then arr.join(" #{word} ")
     else
       arr.join(separator).insert(-2, "#{word} ")
     end
