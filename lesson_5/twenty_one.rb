@@ -108,14 +108,7 @@ class Player < Participant
   def play
     prompt "Player turn"
     loop do
-      choice = nil
-      loop do
-        prompt "Would you like to (h)it or (s)tay?"
-        choice = gets.chomp.downcase
-        break if %w[h s].include?(choice)
-        puts "Invalid choice. Enter 'h' or 's'."
-      end
-
+      choice = hit_or_stay
       choice == "h" ? hit : stay
       compute_total
       show_cards
@@ -130,9 +123,24 @@ class Player < Participant
     puts ""
   end
 
-  def show_cards
+  def show_cards(hide_total: false)
     card_values = cards.map(&:value)
-    puts "You have: #{joinor(card_values)} for a total of #{total_cards}"
+    str = "You have: #{joinor(card_values)}"
+    str += " for a total of #{total_cards}" unless hide_total
+    puts str
+  end
+
+  private
+
+  def hit_or_stay
+    choice = nil
+    loop do
+      prompt "Would you like to (h)it or (s)tay?"
+      choice = gets.chomp.downcase
+      break if %w[h s].include?(choice)
+      puts "Invalid choice. Enter 'h' or 's'."
+    end
+    choice
   end
 end
 
@@ -148,7 +156,7 @@ class Dealer < Participant
     end
 
     if busted?
-      prompt "Dealer busted..."
+      prompt "Dealer busted... You won this round!"
     else
       prompt "Dealer stays"
     end
@@ -264,13 +272,18 @@ class Game
 
   def show_result
     dealer.show_cards(show_all_cards: true)
-    player.show_cards
-    puts "=> Results: Dealer has #{dealer.total_cards}. You have #{player.total_cards}."
+    player.show_cards(hide_total: true)
+    puts "=> Results: Dealer has #{dealer.total_cards}. \
+    You have #{player.total_cards}."
     puts ""
   end
 
   def winner?
     player.winner? || dealer.winner?
+  end
+
+  def busted?
+    player.busted? || dealer.busted?
   end
 
   def display_winner
@@ -297,14 +310,23 @@ class Game
     puts ""
   end
 
-  def update_scores
+  def update_player_score
     if dealer.busted? ||
-      (!player.busted? && player.total_cards > dealer.total_cards)
+       (!player.busted? && player.total_cards > dealer.total_cards)
       player.increase_score
-    elsif player.busted? ||
-      (!dealer.busted? && player.total_cards < dealer.total_cards )
+    end
+  end
+
+  def update_dealer_score
+    if player.busted? ||
+       (!dealer.busted? && player.total_cards < dealer.total_cards)
       dealer.increase_score
     end
+  end
+
+  def update_scores
+    update_player_score
+    update_dealer_score
   end
 
   def deal_cards
@@ -331,17 +353,19 @@ class Game
     gets.chomp
   end
 
+  def play_participants
+    player.play
+    dealer.play unless player.busted?
+  end
+
   def play_rounds
     loop do
       display_scores
       deal_cards
       show_initial_cards
-      player.play
-      unless player.busted?
-        dealer.play
-        show_result unless dealer.busted?
-        display_result unless dealer.busted?
-      end
+      play_participants
+      show_result unless busted?
+      display_result unless busted?
       update_scores
 
       break if winner?
