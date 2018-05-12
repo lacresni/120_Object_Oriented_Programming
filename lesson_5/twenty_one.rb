@@ -1,6 +1,4 @@
-require 'pry'
-
-module GameVariable
+module GameData
   WINNING_TOTAL = 21
   ACE_DEFAULT_VALUE = 1
   ACE_MAX_VALUE = 11
@@ -33,13 +31,13 @@ module Scoreable
   end
 
   def winner?
-    @score >= WINNING_ROUNDS
+    score >= WINNING_ROUNDS
   end
 end
 
 class Participant
   include Joinable
-  include GameVariable
+  include GameData
   include Scoreable
 
   attr_reader :cards, :total_cards
@@ -50,11 +48,11 @@ class Participant
   end
 
   def add_card_to_hand(card)
-    @cards << card
+    cards << card
   end
 
   def busted?
-    @total_cards > WINNING_TOTAL
+    total_cards > WINNING_TOTAL
   end
 
   def reset(score: false)
@@ -189,10 +187,6 @@ class Deck
     reset
   end
 
-  def deal
-    @cards.pop
-  end
-
   def reset
     @cards = []
     SUITS.each do |suit|
@@ -202,10 +196,14 @@ class Deck
     end
     @cards.shuffle!
   end
+
+  def deal
+    @cards.pop
+  end
 end
 
 class Card
-  include GameVariable
+  include GameData
 
   attr_reader :value
 
@@ -238,7 +236,7 @@ class Game
   private
 
   def clear
-    system 'clear'
+    system('clear') || system('cls')
   end
 
   def reset(score: false)
@@ -292,6 +290,7 @@ class Game
     else
       puts "Sorry, dealer won the game..."
     end
+    puts ""
   end
 
   def display_result
